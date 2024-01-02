@@ -11,17 +11,44 @@ const app = express();
 // You have been given a numberOfRequestsForUser object to start off with which
 // clears every one second
 
-let numberOfRequestsForUser = {};
+let numberOfRequestsForUser = [];
 setInterval(() => {
-    numberOfRequestsForUser = {};
+    numberOfRequestsForUser = [];
 }, 1000)
+
+app.use( (req,res,next) => {
+    let userId = req.headers['user-id']
+    if ( numberOfRequestsForUser.length ==0 || numberOfRequestsForUser.filter( (item) => { return userId === item.userId }).length == 0 ){
+      let user = { "userId" : userId , "requestSent": 0}
+      numberOfRequestsForUser.push(user)
+      next()
+    }
+    else{
+      numberOfRequestsForUser.forEach( (item) => {
+          if ( item.userId === userId) {
+            if ( item.requestSent ==5){
+              res.status(404).json({
+                "msg" : "Maximum limit reached , Please Wait for some time"
+              })
+            }
+            else{
+              item.requestSent++
+              next()
+            }
+          }
+      })
+    }
+})
 
 app.get('/user', function(req, res) {
   res.status(200).json({ name: 'john' });
 });
 
-app.post('/user', function(req, res) {
-  res.status(200).json({ msg: 'created dummy user' });
+app.get('/', function(req, res) {
+    res.send(numberOfRequestsForUser)
+  // res.status(200).json({ msg: 'created dummy user' });
 });
 
 module.exports = app;
+
+// app.listen(3000)
